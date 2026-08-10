@@ -375,6 +375,23 @@
             </div>
           </div>
 
+          <!-- Visual Upload Progress Bar -->
+          <div v-if="isUploading" class="space-y-2 pt-2">
+            <div class="flex items-center justify-between text-xs font-code">
+              <span class="text-slate-400 font-medium">Jarayon:</span>
+              <span class="text-emerald-400 font-bold font-code">{{ uploadProgressPercent }}%</span>
+            </div>
+            <div class="w-full h-2.5 rounded-full bg-[#090a0d] border border-white/10 overflow-hidden relative">
+              <div 
+                class="h-full bg-emerald-400 transition-all duration-300 rounded-full"
+                :style="{ width: uploadProgressPercent + '%' }"
+              ></div>
+            </div>
+            <div v-if="uploadProgressDetail" class="text-[10px] text-slate-400 font-code text-right">
+              {{ uploadProgressDetail }}
+            </div>
+          </div>
+
           <div v-if="uploadStatusMessage" :class="isSuccess ? 'text-emerald-400' : 'text-rose-400'" class="text-xs font-semibold text-center py-1 font-code">
             {{ uploadStatusMessage }}
           </div>
@@ -537,6 +554,8 @@ const activeInspectModel = ref(null);
 const selectedFile = ref(null);
 const selectedFileName = ref('');
 const isUploading = ref(false);
+const uploadProgressPercent = ref(0);
+const uploadProgressDetail = ref('');
 const uploadStatusMessage = ref('');
 const isSuccess = ref(false);
 
@@ -612,6 +631,8 @@ const openUploadModal = () => {
   selectedFile.value = null;
   selectedFileName.value = '';
   uploadStatusMessage.value = '';
+  uploadProgressPercent.value = 0;
+  uploadProgressDetail.value = '';
   showUploadModal.value = true;
 };
 
@@ -636,6 +657,8 @@ const handleUpload = async () => {
 
   isUploading.value = true;
   uploadStatusMessage.value = '';
+  uploadProgressPercent.value = 0;
+  uploadProgressDetail.value = '';
 
   try {
     const chunkSize = 2 * 1024 * 1024; // 2MB per chunk (well below 4.5MB Vercel limit)
@@ -659,6 +682,8 @@ const handleUpload = async () => {
         formData.append('glbFile', chunk, file.name);
 
         const progress = Math.round(((i + 1) / totalChunks) * 100);
+        uploadProgressPercent.value = progress;
+        uploadProgressDetail.value = `${(end / 1024 / 1024).toFixed(1)} MB / ${(file.size / 1024 / 1024).toFixed(1)} MB • Chunk ${i + 1}/${totalChunks}`;
         uploadStatusMessage.value = `Yuklanmoqda... ${progress}% (${i + 1}/${totalChunks})`;
 
         await $fetch(`${config.public.apiBase}/api/models/upload-chunk`, {
@@ -668,6 +693,10 @@ const handleUpload = async () => {
       }
     } else {
       // Standard single request for small files (< 2MB)
+      uploadProgressPercent.value = 50;
+      uploadProgressDetail.value = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
+      uploadStatusMessage.value = 'Yuklanmoqda... 50%';
+
       const formData = new FormData();
       formData.append('name', form.value.name);
       formData.append('description', form.value.description);
@@ -677,9 +706,11 @@ const handleUpload = async () => {
         method: 'POST',
         body: formData
       });
+      uploadProgressPercent.value = 100;
     }
 
     isSuccess.value = true;
+    uploadProgressPercent.value = 100;
     uploadStatusMessage.value = 'Model muvaffaqiyatli saqlandi!';
     showToast("Yangi 3D model yuklandi");
     
@@ -689,6 +720,8 @@ const handleUpload = async () => {
       selectedFile.value = null;
       selectedFileName.value = '';
       uploadStatusMessage.value = '';
+      uploadProgressPercent.value = 0;
+      uploadProgressDetail.value = '';
       refresh();
     }, 800);
   } catch (err) {
