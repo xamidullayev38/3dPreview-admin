@@ -627,7 +627,8 @@ const onFileSelected = (event) => {
 };
 
 const handleUpload = async () => {
-  if (!selectedFile.value) {
+  const file = selectedFile.value;
+  if (!file) {
     uploadStatusMessage.value = 'Iltimos, GLB faylini tanlang';
     isSuccess.value = false;
     return;
@@ -636,16 +637,47 @@ const handleUpload = async () => {
   isUploading.value = true;
   uploadStatusMessage.value = '';
 
-  const formData = new FormData();
-  formData.append('name', form.value.name);
-  formData.append('description', form.value.description);
-  formData.append('glbFile', selectedFile.value);
-
   try {
-    await $fetch(`${config.public.apiBase}/api/models`, {
-      method: 'POST',
-      body: formData
-    });
+    const chunkSize = 2 * 1024 * 1024; // 2MB per chunk (well below 4.5MB Vercel limit)
+    if (file.size > chunkSize) {
+      // Chunked Upload for larger GLB files
+      const totalChunks = Math.ceil(file.size / chunkSize);
+      const uploadId = `up-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * chunkSize;
+        const end = Math.min(file.size, start + chunkSize);
+        const chunk = file.slice(start, end);
+
+        const formData = new FormData();
+        formData.append('uploadId', uploadId);
+        formData.append('chunkIndex', i.toString());
+        formData.append('totalChunks', totalChunks.toString());
+        formData.append('name', form.value.name);
+        formData.append('description', form.value.description);
+        formData.append('originalName', file.name);
+        formData.append('glbFile', chunk, file.name);
+
+        const progress = Math.round(((i + 1) / totalChunks) * 100);
+        uploadStatusMessage.value = `Yuklanmoqda... ${progress}% (${i + 1}/${totalChunks})`;
+
+        await $fetch(`${config.public.apiBase}/api/models/upload-chunk`, {
+          method: 'POST',
+          body: formData
+        });
+      }
+    } else {
+      // Standard single request for small files (< 2MB)
+      const formData = new FormData();
+      formData.append('name', form.value.name);
+      formData.append('description', form.value.description);
+      formData.append('glbFile', file);
+
+      await $fetch(`${config.public.apiBase}/api/models`, {
+        method: 'POST',
+        body: formData
+      });
+    }
 
     isSuccess.value = true;
     uploadStatusMessage.value = 'Model muvaffaqiyatli saqlandi!';
