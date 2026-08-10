@@ -28,18 +28,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'GLB fayli yuklanishi shart' });
   }
 
-  const uploadsDir = getUploadsDir();
-  const ext = path.extname(fileName) || '.glb';
-  const finalFileName = `model-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-  const finalFilePath = path.join(uploadsDir, finalFileName);
-
-  fs.writeFileSync(finalFilePath, fileBuffer);
+  const fileBase64 = fileBuffer.toString('base64');
+  const fileUrl = `data:model/gltf-binary;base64,${fileBase64}`;
 
   const newModel: Model3D = {
     id: `mod-${Date.now()}`,
     name: name || fileName,
     description: description || '',
-    fileUrl: `/uploads/${finalFileName}`,
+    fileUrl,
     fileSize: fileBuffer.length,
     createdAt: new Date().toISOString()
   };

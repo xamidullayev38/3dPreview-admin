@@ -38,19 +38,20 @@ export default defineEventHandler(async (event) => {
 
   // If last chunk
   if (chunkIndex === totalChunks - 1) {
-    const ext = path.extname(originalName || 'file.glb') || '.glb';
-    const finalFileName = `model-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-    const finalFilePath = path.join(uploadsDir, finalFileName);
+    const finalBuffer = fs.readFileSync(tempFilePath);
+    if (fs.existsSync(tempFilePath)) {
+      fs.unlinkSync(tempFilePath);
+    }
 
-    fs.renameSync(tempFilePath, finalFilePath);
-    const stats = fs.statSync(finalFilePath);
+    const fileBase64 = finalBuffer.toString('base64');
+    const fileUrl = `data:model/gltf-binary;base64,${fileBase64}`;
 
     const newModel: Model3D = {
       id: `mod-${Date.now()}`,
       name: name || originalName || '3D Model',
       description: description || '',
-      fileUrl: `/uploads/${finalFileName}`,
-      fileSize: stats.size,
+      fileUrl,
+      fileSize: finalBuffer.length,
       createdAt: new Date().toISOString()
     };
 
