@@ -1,4 +1,4 @@
-const backendUrl = process.env.NUXT_PUBLIC_BACKEND_URL || 'http://vi-e40df1d09e0c41b8a2027511c9203ac9.ecs.eu-north-1.on.aws';
+const backendUrl = process.env.NUXT_PUBLIC_BACKEND_URL || '';
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -12,12 +12,14 @@ export default defineNuxtConfig({
       isCustomElement: (tag) => tag === 'model-viewer'
     }
   },
-  nitro: {
-    routeRules: {
-      '/api/**': { proxy: `${backendUrl}/api/**` },
-      '/uploads/**': { proxy: `${backendUrl}/uploads/**` }
+  ...(backendUrl ? {
+    nitro: {
+      routeRules: {
+        '/api/**': { proxy: `${backendUrl}/api/**` },
+        '/uploads/**': { proxy: `${backendUrl}/uploads/**` }
+      }
     }
-  },
+  } : {}),
   app: {
     head: {
       title: '3dView — Admin Management Console',
