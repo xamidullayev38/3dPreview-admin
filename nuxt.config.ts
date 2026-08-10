@@ -1,3 +1,5 @@
+const backendUrl = process.env.NUXT_PUBLIC_BACKEND_URL || 'http://vi-e40df1d09e0c41b8a2027511c9203ac9.ecs.eu-north-1.on.aws';
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2026-08-08',
@@ -8,6 +10,12 @@ export default defineNuxtConfig({
   vue: {
     compilerOptions: {
       isCustomElement: (tag) => tag === 'model-viewer'
+    }
+  },
+  nitro: {
+    routeRules: {
+      '/api/**': { proxy: `${backendUrl}/api/**` },
+      '/uploads/**': { proxy: `${backendUrl}/uploads/**` }
     }
   },
   app: {
@@ -31,7 +39,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://vi-e40df1d09e0c41b8a2027511c9203ac9.ecs.eu-north-1.on.aws'
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || ''
     }
   }
 })
